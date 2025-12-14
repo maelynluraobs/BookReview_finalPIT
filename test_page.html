@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Review Sentiment Analyzer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .result.positive {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .result.negative {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .result.neutral {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            display: none;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 Book Review Sentiment Analyzer</h1>
+        
+        <div class="info" id="modelWarning" style="display: none;">
+            ⚠️ <strong>Warning:</strong> Model files not loaded. Please create the model files first.
+        </div>
+
+        <label for="reviewText"><strong>Enter your book review:</strong></label>
+        <textarea id="reviewText" placeholder="Example: This book was absolutely amazing! I loved every page and couldn't put it down."></textarea>
+        
+        <button onclick="generateReview()" style="background-color: #2196F3; margin-bottom: 10px;">🎲 Generate Sample Review</button>
+        <button onclick="analyzeSentiment()">Analyze Sentiment</button>
+        
+        <div id="result" class="result">
+            <h2>Prediction: <span id="sentiment"></span></h2>
+            <p><strong>Original Text:</strong> <span id="originalText"></span></p>
+            <p><strong>Model Used:</strong> <span id="modelName"></span></p>
+        </div>
+        
+        <div id="error" class="error"></div>
+    </div>
+
+    <script>
+        // Sample book reviews for different sentiments
+        const sampleReviews = {
+            positive: [
+                "This book was absolutely amazing! I loved every page and couldn't put it down. The characters were so well-developed and the plot kept me engaged from beginning to end.",
+                "Outstanding read! The author's writing style is captivating and the story is beautifully crafted. I highly recommend this book to everyone.",
+                "What a masterpiece! This is one of the best books I've ever read. The narrative is compelling and the ending was perfect.",
+                "Incredible story with fantastic character development. I was hooked from the first chapter and read it in one sitting. Absolutely brilliant!",
+                "A wonderful reading experience! The book exceeded all my expectations. The prose is elegant and the themes are thought-provoking."
+            ],
+            negative: [
+                "This book was terrible. The plot was boring and the characters were poorly developed. I couldn't finish it.",
+                "Very disappointing read. The writing was confusing and the story dragged on forever. Not worth the time or money.",
+                "One of the worst books I've ever read. The narrative was disjointed and the ending made no sense. Do not recommend.",
+                "Awful book with terrible pacing. The characters were unlikeable and the plot was predictable. Total waste of time.",
+                "I regret buying this book. It was painfully boring and I had to force myself to finish it. Very poor quality."
+            ],
+            neutral: [
+                "The book was okay. Nothing special but not terrible either. It has some good moments but also some boring parts.",
+                "An average read. The story was decent but didn't really stand out. It's fine if you have nothing else to read.",
+                "It was alright. Some parts were interesting while others felt slow. Overall, just an okay book.",
+                "The book has its ups and downs. Not the best I've read but not the worst either. It's a middle-of-the-road experience.",
+                "Fair enough. The book met my basic expectations but didn't exceed them. It's an acceptable way to pass time."
+            ]
+        };
+
+        function generateReview() {
+            // Randomly select a sentiment category
+            const categories = ['positive', 'negative', 'neutral'];
+            const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+            
+            // Get a random review from that category
+            const reviews = sampleReviews[randomCategory];
+            const randomReview = reviews[Math.floor(Math.random() * reviews.length)];
+            
+            // Set the review in the textarea
+            document.getElementById('reviewText').value = randomReview;
+            
+            // Clear any previous results
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+        }
+
+        async function analyzeSentiment() {
+            const reviewText = document.getElementById('reviewText').value.trim();
+            const resultDiv = document.getElementById('result');
+            const errorDiv = document.getElementById('error');
+            const sentimentSpan = document.getElementById('sentiment');
+            const originalTextSpan = document.getElementById('originalText');
+            const modelNameSpan = document.getElementById('modelName');
+            
+            // Hide previous results
+            resultDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+            
+            if (!reviewText) {
+                errorDiv.textContent = 'Please enter a book review to analyze.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            try {
+                const response = await fetch('http://127.0.0.1:5000/predict_sentiment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: reviewText })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    if (data.error) {
+                        // Model not loaded error
+                        errorDiv.textContent = `Error: ${data.error}`;
+                        errorDiv.style.display = 'block';
+                        document.getElementById('modelWarning').style.display = 'block';
+                    } else {
+                        // Success
+                        sentimentSpan.textContent = data.predicted_sentiment;
+                        originalTextSpan.textContent = data.input_text;
+                        modelNameSpan.textContent = data.model;
+                        
+                        // Remove previous sentiment classes
+                        resultDiv.classList.remove('positive', 'negative', 'neutral');
+                        
+                        // Add appropriate class based on sentiment
+                        const sentiment = data.predicted_sentiment.toLowerCase();
+                        resultDiv.classList.add(sentiment);
+                        
+                        resultDiv.style.display = 'block';
+                    }
+                } else {
+                    errorDiv.textContent = `Error: ${data.error || 'Unknown error occurred'}`;
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                errorDiv.textContent = `Connection Error: ${error.message}. Make sure the Flask server is running on http://127.0.0.1:5000`;
+                errorDiv.style.display = 'block';
+            }
+        }
+        
+        // Allow Enter key to submit (with Shift+Enter for new line)
+        document.getElementById('reviewText').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                analyzeSentiment();
+            }
+        });
+    </script>
+</body>
+</html>

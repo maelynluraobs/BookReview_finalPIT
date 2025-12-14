@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon Book Review Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: linear-gradient(135deg, #2c1810 0%, #1a0f0a 100%);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Library background pattern */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(139, 92, 46, 0.03) 2px, rgba(139, 92, 46, 0.03) 4px),
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(139, 92, 46, 0.03) 2px, rgba(139, 92, 46, 0.03) 4px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Header Styles */
+        .header {
+            background: linear-gradient(135deg, #3d2817 0%, #2c1810 100%);
+            color: #f4e4c1;
+            padding: 30px 0;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            border-bottom: 3px solid #8b5c2e;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #d4a76a, transparent);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .project-title {
+            font-size: 3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+            color: #f4e4c1;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            letter-spacing: 2px;
+        }
+
+        .slogan {
+            font-size: 1.2em;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #d4a76a;
+            font-style: italic;
+            font-family: 'Georgia', serif;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(212, 167, 106, 0.3);
+        }
+
+        .nav-link {
+            color: #d4a76a;
+            text-decoration: none;
+            font-size: 1.1em;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            font-family: 'Georgia', serif;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background-color: rgba(212, 167, 106, 0.2);
+            border-color: #8b5c2e;
+            color: #f4e4c1;
+        }
+
+        /* Main Container */
+        .main-container {
+            max-width: 1400px;
+            margin: 40px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Input Panel */
+        .input-panel {
+            background: linear-gradient(135deg, #2a1a0f 0%, #1f140b 100%);
+            border-radius: 20px;
+            padding: 35px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(212, 167, 106, 0.1);
+            border: 2px solid #3d2817;
+        }
+
+        .panel-title {
+            font-size: 1.8em;
+            margin-bottom: 25px;
+            color: #f4e4c1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: 'Georgia', serif;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .text-area {
+            width: 100%;
+            min-height: 250px;
+            padding: 18px;
+            font-size: 16px;
+            border: 2px solid #3d2817;
+            border-radius: 12px;
+            resize: vertical;
+            font-family: 'Georgia', serif;
+            margin-bottom: 12px;
+            background: #1a0f0a;
+            color: #f4e4c1;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        .text-area:focus {
+            outline: none;
+            border-color: #8b5c2e;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 0 3px rgba(139, 92, 46, 0.2);
+        }
+
+        .text-area::placeholder {
+            color: #8b7355;
+        }
+
+        .char-counter {
+            text-align: right;
+            color: #8b7355;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            font-family: 'Georgia', serif;
+        }
+
+        .review-metadata {
+            background: linear-gradient(135deg, #3d2817 0%, #2c1810 100%);
+            padding: 18px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 2px solid #4d3520;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .review-metadata.show {
+            display: block;
+        }
+
+        .review-metadata h4 {
+            margin: 0 0 12px 0;
+            color: #f4e4c1;
+            font-size: 1em;
+            font-family: 'Georgia', serif;
+        }
+
+        .book-title {
+            color: #d4a76a;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .star-rating {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .stars {
+            color: #d4a76a;
+            font-size: 1.3em;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px rgba(212, 167, 106, 0.5);
+        }
+
+        .rating-text {
+            color: #8b7355;
+            font-size: 0.95em;
+            margin-left: 8px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-direction: column;
+        }
+
+        .btn {
+            padding: 16px 32px;
+            font-size: 1.1em;
+            border: 2px solid #8b5c2e;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-family: 'Georgia', serif;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .btn-generate {
+            background: linear-gradient(135deg, #4d3520 0%, #3d2817 100%);
+            color: #d4a76a;
+        }
+
+        .btn-generate:hover {
+            background: linear-gradient(135deg, #5d4530 0%, #4d3520 100%);
+            border-color: #d4a76a;
+        }
+
+        .btn-analyze {
+            background: linear-gradient(135deg, #8b5c2e 0%, #6d4623 100%);
+            color: #f4e4c1;
+        }
+
+        .btn-analyze:hover {
+            background: linear-gradient(135deg, #9b6c3e 0%, #7d5633 100%);
+            box-shadow: 0 8px 20px rgba(139, 92, 46, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Results Panel */
+        .results-panel {
+            background: linear-gradient(135deg, #2a1a0f 0%, #1f140b 100%);
+            border-radius: 20px;
+            padding: 35px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(212, 167, 106, 0.1);
+            border: 2px solid #3d2817;
+            min-height: 500px;
+        }
+
+        .results-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 400px;
+            color: #8b7355;
+            text-align: center;
+        }
+
+        .results-empty-icon {
+            font-size: 6em;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .results-content {
+            display: none;
+        }
+
+        .results-content.show {
+            display: block;
+        }
+
+        .result-banner {
+            padding: 35px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+            font-weight: bold;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            border: 2px solid;
+            font-family: 'Georgia', serif;
+        }
+
+        .result-banner.bad {
+            background: linear-gradient(135deg, #8b2e2e 0%, #6d2323 100%);
+            color: #ffe4e4;
+            border-color: #a33838;
+        }
+
+        .result-banner.mixed {
+            background: linear-gradient(135deg, #8b7c2e 0%, #6d6323 100%);
+            color: #fffae4;
+            border-color: #a39338;
+        }
+
+        .result-banner.great {
+            background: linear-gradient(135deg, #2e8b57 0%, #236d44 100%);
+            color: #e4fff0;
+            border-color: #38a368;
+        }
+
+        .confidence-score {
+            background: linear-gradient(135deg, #3d2817 0%, #2c1810 100%);
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            text-align: center;
+            border: 2px solid #4d3520;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .confidence-score h3 {
+            color: #8b7355;
+            font-size: 1em;
+            margin-bottom: 12px;
+            font-family: 'Georgia', serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .confidence-value {
+            font-size: 3em;
+            font-weight: bold;
+            color: #d4a76a;
+            text-shadow: 0 0 20px rgba(212, 167, 106, 0.3);
+            font-family: 'Georgia', serif;
+        }
+
+        .review-echo {
+            background: linear-gradient(135deg, #3d2817 0%, #2c1810 100%);
+            padding: 25px;
+            border-radius: 12px;
+            border: 2px solid #4d3520;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .review-echo h3 {
+            color: #8b7355;
+            font-size: 1em;
+            margin-bottom: 12px;
+            font-family: 'Georgia', serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .review-echo-text {
+            color: #f4e4c1;
+            font-style: italic;
+            line-height: 1.8;
+            font-family: 'Georgia', serif;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #2a1a0f 0%, #1f140b 100%);
+            padding: 45px;
+            border-radius: 20px;
+            max-width: 650px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 2px solid #3d2817;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+        }
+
+        .modal-title {
+            font-size: 2.2em;
+            margin-bottom: 25px;
+            color: #f4e4c1;
+            font-family: 'Georgia', serif;
+        }
+
+        .modal-close {
+            float: right;
+            font-size: 1.8em;
+            cursor: pointer;
+            color: #8b7355;
+            transition: color 0.3s;
+        }
+
+        .modal-close:hover {
+            color: #d4a76a;
+        }
+
+        .info-section {
+            margin-bottom: 25px;
+        }
+
+        .info-section h3 {
+            color: #d4a76a;
+            margin-bottom: 12px;
+            font-family: 'Georgia', serif;
+            font-size: 1.2em;
+        }
+
+        .info-section p {
+            color: #b39d83;
+            line-height: 1.8;
+            font-family: 'Georgia', serif;
+            margin-bottom: 10px;
+        }
+
+        /* Model Info Table */
+        .model-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: linear-gradient(135deg, #3d2817 0%, #2c1810 100%);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #4d3520;
+        }
+
+        .model-table th,
+        .model-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #4d3520;
+        }
+
+        .model-table th {
+            background: linear-gradient(135deg, #4d3520 0%, #3d2817 100%);
+            color: #d4a76a;
+            font-weight: bold;
+            font-family: 'Georgia', serif;
+        }
+
+        .model-table td {
+            color: #b39d83;
+            font-family: 'Georgia', serif;
+        }
+
+        .model-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .model-table tr:hover {
+            background: rgba(139, 92, 46, 0.1);
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a0f0a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #3d2817;
+            border-radius: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4d3520;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 968px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .project-title {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <h1 class="project-title">Amazon Book Review Analyzer</h1>
+
+            <p class="slogan">IT 414 Final Project - Text Classification with Machine Learning</p>
+            <nav class="navigation">
+                <a href="#" class="nav-link active" onclick="showHome(event)">Home</a>
+                <a href="#" class="nav-link" onclick="showAbout(event)">About</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Input Panel -->
+        <div class="input-panel">
+            <h2 class="panel-title">📝 Enter Your Book Review Text</h2>
+            <textarea 
+                id="reviewText" 
+                class="text-area" 
+                placeholder="Type or paste your book review here... (e.g., 'This book was absolutely amazing! The storyline kept me engaged throughout.')"
+                maxlength="1000"
+                oninput="updateCharCounter()"
+            ></textarea>
+            <div class="char-counter" id="charCounter">0 / 1000 characters</div>
+            
+            <!-- Review Metadata (shown when example is generated) -->
+            <div class="review-metadata" id="reviewMetadata">
+                <h4>📖 Book Information</h4>
+                <div class="book-title" id="bookTitle"></div>
+                <div class="star-rating">
+                    <span class="stars" id="starDisplay"></span>
+                    <span class="rating-text" id="ratingText"></span>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn btn-generate" onclick="generateExample()">
+                    Generate Review
+                </button>
+                <button class="btn btn-analyze" onclick="analyzeSentiment()">
+                    Analyze Sentiment
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Panel -->
+        <div class="results-panel">
+            <h2 class="panel-title">✅ Analysis Results</h2>
+            
+            <!-- Empty State -->
+            <div class="results-empty" id="resultsEmpty">
+                <div class="results-empty-icon">📊</div>
+                <p>Enter a book review and click "Analyze Sentiment"<br>to see the results here.</p>
+            </div>
+
+            <!-- Results Content -->
+            <div class="results-content" id="resultsContent">
+                <div class="result-banner" id="resultBanner">
+                    <span id="resultText">Great Review</span>
+                </div>
+
+                <div class="confidence-score">
+                    <h3>Confidence Score</h3>
+                    <div class="confidence-value" id="confidenceValue">--</div>
+                </div>
+
+                <div class="review-echo">
+                    <h3>Input Text</h3>
+                    <div class="review-echo-text" id="reviewEcho">--</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- About Modal -->
+    <div class="modal" id="aboutModal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('aboutModal')">&times;</span>
+            <h2 class="modal-title">About This Project</h2>
+            
+            <div class="info-section">
+                <h3>Project Members</h3>
+                <p>Maelyn L. Obejero and Angel Llatuna</p>
+            </div>
+
+            <div class="info-section">
+                <h3>Description</h3>
+                <p>This Amazon Book Review Analyzer uses machine learning to automatically classify book reviews into three sentiment categories: Bad Review, Mixed Review, and Great Review.</p>
+            </div>
+
+            <div class="info-section">
+                <h3>Model Information</h3>
+                <table class="model-table">
+                    <tr>
+                        <th>Property</th>
+                        <th>Details</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Model Type</strong></td>
+                        <td>Logistic Regression</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Accuracy</strong></td>
+                        <td>84.5% on test dataset</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Features</strong></td>
+                        <td>TF-IDF Vectorization with 5000 features</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Preprocessing</strong></td>
+                        <td>Lowercasing, special character removal, stopword removal, lemmatization</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Classes</strong></td>
+                        <td>
+                            🔴 <strong>Bad Review (Negative):</strong> 1-2 stars<br>
+                            🟡 <strong>Mixed Review (Neutral):</strong> 3 stars<br>
+                            🟢 <strong>Great Review (Positive):</strong> 4-5 stars
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="info-section">
+                <h3>Dataset: Books_ratings.csv</h3>
+                <p><strong>Total Reviews:</strong> Approximately 29,352 book reviews from Amazon</p>
+                
+                <p><strong>Original Features:</strong></p>
+                <ul style="color: #b39d83; line-height: 1.8; margin-left: 20px;">
+                    <li><strong>Id:</strong> Unique identifier for the book</li>
+                    <li><strong>Title:</strong> The title of the book</li>
+                    <li><strong>Price:</strong> Book price (some missing values)</li>
+                    <li><strong>User_id:</strong> Unique identifier for the reviewer</li>
+                    <li><strong>profileName:</strong> Display name of the user</li>
+                    <li><strong>review/helpfulness:</strong> Helpfulness rating information</li>
+                    <li><strong>review/score:</strong> Numerical rating (1-5 stars)</li>
+                    <li><strong>review/time:</strong> Review timestamp</li>
+                    <li><strong>review/summary:</strong> Short review summary</li>
+                    <li><strong>review/text:</strong> Full review content</li>
+                </ul>
+                
+                <p><strong>Derived Features:</strong></p>
+                <ul style="color: #b39d83; line-height: 1.8; margin-left: 20px;">
+                    <li><strong>sentiment:</strong> Categorical label ('Negative', 'Neutral', 'Positive') derived from review/score:
+                        <ul style="margin-left: 20px; margin-top: 5px;">
+                            <li>1-2 stars → Negative</li>
+                            <li>3 stars → Neutral</li>
+                            <li>4-5 stars → Positive</li>
+                        </ul>
+                    </li>
+                    <li><strong>cleaned_review:</strong> Processed text after lowercasing, removing special characters, stopword removal, and lemmatization</li>
+                </ul>
+                
+                <p style="margin-top: 15px;"><strong>Primary Use:</strong> Sentiment analysis based on review/text and review/score columns using TF-IDF vectorization and Logistic Regression model.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateCharCounter() {
+            const textarea = document.getElementById('reviewText');
+            const counter = document.getElementById('charCounter');
+            counter.textContent = `${textarea.value.length} / 1000 characters`;
+        }
+
+        async function generateExample() {
+            try {
+                // Fetch a random review from the backend
+                const response = await fetch('/get_random_review');
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch review from server');
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    alert(`Error: ${data.error}`);
+                    return;
+                }
+                
+                // Set the review in the textarea
+                document.getElementById('reviewText').value = data.text;
+                updateCharCounter();
+                
+                // Display book metadata
+                displayBookMetadata(data.title, data.score, data.summary);
+                
+                // Clear previous results
+                document.getElementById('resultsEmpty').style.display = 'flex';
+                document.getElementById('resultsContent').classList.remove('show');
+                
+            } catch (error) {
+                alert(`Error loading review: ${error.message}. Make sure the Flask server is running.`);
+            }
+        }
+
+        function displayBookMetadata(title, score, summary) {
+            // Show the metadata section
+            const metadataDiv = document.getElementById('reviewMetadata');
+            metadataDiv.classList.add('show');
+            
+            // Display book title
+            document.getElementById('bookTitle').textContent = title;
+            
+            // Generate star display
+            const fullStars = '★'.repeat(score);
+            const emptyStars = '☆'.repeat(5 - score);
+            document.getElementById('starDisplay').textContent = fullStars + emptyStars;
+            
+            // Display rating text
+            document.getElementById('ratingText').textContent = `${score}/5 stars`;
+        }
+
+        async function analyzeSentiment() {
+            const reviewText = document.getElementById('reviewText').value.trim();
+            
+            if (!reviewText) {
+                alert('Please enter a book review to analyze.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/predict_sentiment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: reviewText })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && !data.error) {
+                    displayResults(data, reviewText);
+                } else {
+                    alert(`Error: ${data.error || 'Unable to analyze sentiment. Please make sure the model files are loaded.'}`);
+                }
+            } catch (error) {
+                alert(`Connection Error: ${error.message}. Make sure the server is running.`);
+            }
+        }
+
+        function displayResults(data, reviewText) {
+            // Map model output to user-friendly display
+            const sentimentMap = {
+                'Negative': { text: '🔴 Bad Review', class: 'bad' },
+                'Neutral': { text: '🟡 Mixed Review', class: 'mixed' },
+                'Positive': { text: '🟢 Great Review', class: 'great' }
+            };
+
+            const sentiment = sentimentMap[data.predicted_sentiment] || { text: data.predicted_sentiment, class: 'mixed' };
+
+            // Update result banner
+            const resultBanner = document.getElementById('resultBanner');
+            const resultText = document.getElementById('resultText');
+            resultText.textContent = sentiment.text;
+            resultBanner.className = `result-banner ${sentiment.class}`;
+
+            // Update confidence score
+            const confidenceValue = data.confidence || 0;
+            document.getElementById('confidenceValue').textContent = `${confidenceValue}%`;
+
+            // Update review echo (first 200 chars)
+            const echoText = reviewText.length > 200 ? reviewText.substring(0, 200) + '...' : reviewText;
+            document.getElementById('reviewEcho').textContent = echoText;
+
+            // Show results, hide empty state
+            document.getElementById('resultsEmpty').style.display = 'none';
+            document.getElementById('resultsContent').classList.add('show');
+        }
+
+        function showHome(event) {
+            event.preventDefault();
+            closeAllModals();
+            updateActiveNav(event.target);
+        }
+
+        function showAbout(event) {
+            event.preventDefault();
+            document.getElementById('aboutModal').classList.add('show');
+            updateActiveNav(event.target);
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        function closeAllModals() {
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.classList.remove('show');
+            });
+        }
+
+        function updateActiveNav(activeLink) {
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            activeLink.classList.add('active');
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                closeAllModals();
+            }
+        }
+    </script>
+</body>
+</html>
