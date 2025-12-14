@@ -103,8 +103,7 @@ def predict():
 @app.route('/get_random_review', methods=['GET'])
 def get_random_review():
     """
-    Get a random book review from the dataset.
-    Optionally filter by sentiment using ?sentiment=positive/negative/neutral
+    Get a random book review from the dataset. filter by sentiment using ?sentiment=positive/negative/neutral
     """
     if reviews_df is None:
         return jsonify({"error": "Reviews dataset not loaded"}), 500

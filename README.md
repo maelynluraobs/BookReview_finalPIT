@@ -11,6 +11,8 @@ A machine learning web application that automatically classifies Amazon book rev
 
 **[View Live Application](https://book-review-analyzer.onrender.com)** *(Replace with your Render URL after deployment)*
 
+if local naman run in cmd: python app.py 
+
 ## 📖 Table of Contents
 
 - [Overview](#overview)
